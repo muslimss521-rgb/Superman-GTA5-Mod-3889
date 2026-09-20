@@ -151,7 +151,7 @@ namespace SupermanGTA5
 
             if (superSpeedEnabled)
             {
-                UpdateSuperSpeed(player);
+                UpdateSuperSpeed();
             }
             else
             {
@@ -168,7 +168,7 @@ namespace SupermanGTA5
             }
 
             if (Game.IsControlJustPressed(
-                Control.Attack,
+                GTA.Control.Attack,
                 0))
             {
                 SuperPunch(player);
@@ -177,27 +177,48 @@ namespace SupermanGTA5
 
         private void DrawMenu()
         {
-            string text = "SUPERman\n\n";
+            string text = "SUPERMAN\n\n";
 
             for (int i = 0; i < menuItems.Length; i++)
             {
-                string prefix = i == selectedItem ? "> " : "  ";
+                string prefix = i == selectedItem
+                    ? "> "
+                    : "  ";
 
                 string state = "";
 
                 if (i == 0)
-                    state = supermanEnabled ? " [ON]" : " [OFF]";
+                {
+                    state = supermanEnabled
+                        ? " [ON]"
+                        : " [OFF]";
+                }
 
                 if (i == 1)
-                    state = flightEnabled ? " [ON]" : " [OFF]";
+                {
+                    state = flightEnabled
+                        ? " [ON]"
+                        : " [OFF]";
+                }
 
                 if (i == 2)
-                    state = superSpeedEnabled ? " [ON]" : " [OFF]";
+                {
+                    state = superSpeedEnabled
+                        ? " [ON]"
+                        : " [OFF]";
+                }
 
                 if (i == 3)
-                    state = heatVisionEnabled ? " [ON]" : " [OFF]";
+                {
+                    state = heatVisionEnabled
+                        ? " [ON]"
+                        : " [OFF]";
+                }
 
-                text += prefix + menuItems[i] + state + "\n";
+                text += prefix +
+                        menuItems[i] +
+                        state +
+                        "\n";
             }
 
             text += "\nF5 - Close";
@@ -269,7 +290,7 @@ namespace SupermanGTA5
             );
         }
 
-        private void UpdateSuperSpeed(Ped player)
+        private void UpdateSuperSpeed()
         {
             Function.Call(
                 Hash.SET_RUN_SPRINT_MULTIPLIER_FOR_PLAYER,
@@ -292,7 +313,10 @@ namespace SupermanGTA5
             if (!Game.IsKeyPressed(Keys.E))
                 return;
 
-            Entity target = GetTarget(player, 60.0f);
+            Entity target = GetTarget(
+                player,
+                60.0f
+            );
 
             if (target == null || !target.Exists())
                 return;
@@ -308,7 +332,9 @@ namespace SupermanGTA5
                     ped.Health -= 10;
 
                     if (ped.Health < 0)
+                    {
                         ped.Health = 0;
+                    }
                 }
             }
 
@@ -318,7 +344,9 @@ namespace SupermanGTA5
             );
         }
 
-        private Entity GetTarget(Ped player, float distance)
+        private Entity GetTarget(
+            Ped player,
+            float distance)
         {
             Ped[] peds = World.GetNearbyPeds(
                 player,
@@ -421,7 +449,9 @@ namespace SupermanGTA5
                     ped.Health -= 25;
 
                     if (ped.Health < 0)
+                    {
                         ped.Health = 0;
+                    }
                 }
             }
         }
