@@ -1,4 +1,4 @@
-name: Build Superman SHVDN3
+name: Build Superman
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - 'scripts/**'
       - 'lib/**'
       - 'Superman.csproj'
-      - '.github/workflows/build-superman.yml'
+      - '.github/workflows/build-trainer.yml'
 
 jobs:
   build:
@@ -20,14 +20,17 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      - name: Restore
+        run: dotnet restore Superman.csproj
+
       - name: Build Superman
-        run: msbuild Superman.csproj /p:Configuration=Release
+        run: msbuild Superman.csproj /p:Configuration=Release /p:RestorePackages=false
 
       - name: Prepare release
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release
-          Copy-Item bin\Release\Superman.dll release\Superman.dll
+          Copy-Item bin\Release\net48\Superman.dll release\Superman.dll
           Copy-Item scripts\Superman.cs release\Superman.cs
 
       - name: Upload Superman
