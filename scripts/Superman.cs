@@ -168,11 +168,10 @@ namespace SupermanGTA5
             }
 
             if (Game.IsControlJustPressed(
-                GTA.Control.Attack,
-                0))
-            {
-                SuperPunch(player);
-            }
+    GTA.Control.Attack))
+{
+    SuperPunch(player);
+}
         }
 
         private void DrawMenu()
