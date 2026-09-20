@@ -1,0 +1,44 @@
+name: Build Superman Trainer
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/**'
+      - 'config/**'
+      - '.github/workflows/build-trainer.yml'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Create project
+        shell: pwsh
+        run: |
+          @'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <TargetFramework>net8.0</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+              <Nullable>enable</Nullable>
+            </PropertyGroup>
+          </Project>
+          '@ | Set-Content Trainer.csproj
+
+      - name: Build
+        run: dotnet build Trainer.csproj -c Release
+
+      - name: Upload Trainer build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Superman-Trainer-build
+          path: bin/Release/
