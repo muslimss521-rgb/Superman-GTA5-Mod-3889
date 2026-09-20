@@ -8,6 +8,7 @@
     <AssemblyName>Superman</AssemblyName>
     <RootNamespace>SupermanGTA5</RootNamespace>
     <PlatformTarget>x64</PlatformTarget>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
 
   <ItemGroup>
