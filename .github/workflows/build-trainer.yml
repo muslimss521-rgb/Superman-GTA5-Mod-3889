@@ -1,12 +1,13 @@
-name: Build Superman Trainer
+name: Build Superman SHVDN3
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - 'src/**'
-      - 'config/**'
-      - '.github/workflows/build-trainer.yml'
+      - 'scripts/**'
+      - 'lib/**'
+      - 'Superman.csproj'
+      - '.github/workflows/build-superman.yml'
 
 jobs:
   build:
@@ -16,29 +17,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
 
-      - name: Create project
+      - name: Build Superman
+        run: msbuild Superman.csproj /p:Configuration=Release
+
+      - name: Prepare release
         shell: pwsh
         run: |
-          @'
-          <Project Sdk="Microsoft.NET.Sdk">
-            <PropertyGroup>
-              <TargetFramework>net8.0</TargetFramework>
-              <ImplicitUsings>enable</ImplicitUsings>
-              <Nullable>enable</Nullable>
-            </PropertyGroup>
-          </Project>
-          '@ | Set-Content Trainer.csproj
+          New-Item -ItemType Directory -Force -Path release
+          Copy-Item bin\Release\Superman.dll release\Superman.dll
+          Copy-Item scripts\Superman.cs release\Superman.cs
 
-      - name: Build
-        run: dotnet build Trainer.csproj -c Release
-
-      - name: Upload Trainer build
+      - name: Upload Superman
         uses: actions/upload-artifact@v4
         with:
-          name: Superman-Trainer-build
-          path: bin/Release/
+          name: Superman-SHVDN3
+          path: release/
