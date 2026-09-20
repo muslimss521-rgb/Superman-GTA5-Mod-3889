@@ -1,62 +1,38 @@
 using System;
 using System.Windows.Forms;
 using GTA;
-using GTA.Native;
 using GTA.Math;
+using GTA.Native;
 using GTA.UI;
 
 namespace SupermanGTA5
 {
     public class Superman : Script
     {
-        // ==========================================
-        // STATE
-        // ==========================================
-
         private bool menuOpen = false;
         private int menuIndex = 0;
 
         private bool supermanEnabled = false;
         private bool flightEnabled = false;
-        private bool superSpeedEnabled = false;
-        private bool godMode = false;
-
-        private bool heatVision = false;
-        private bool freezeBreath = false;
-
-        private float flightSpeed = 35.0f;
-        private float boostSpeed = 90.0f;
+        private bool speedEnabled = false;
+        private bool heatVisionEnabled = false;
 
         private readonly string[] menuItems =
         {
-            "SUPERMAN: ON/OFF",
-            "FLIGHT: ON/OFF",
-            "BOOST FLIGHT",
-            "SUPER SPEED: ON/OFF",
-            "GOD MODE: ON/OFF",
-            "HEAT VISION",
-            "FREEZE BREATH",
+            "SUPERMAN ON/OFF",
+            "FLIGHT ON/OFF",
+            "SUPER SPEED ON/OFF",
+            "HEAT VISION ON/OFF",
             "SUPER PUNCH",
-            "GROUND POUND",
-            "THUNDER CLAP",
             "RESTORE PLAYER"
         };
-
-        // ==========================================
-        // CONSTRUCTOR
-        // ==========================================
 
         public Superman()
         {
             Tick += OnTick;
             KeyDown += OnKeyDown;
-
             Interval = 0;
         }
-
-        // ==========================================
-        // KEYBOARD
-        // ==========================================
 
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
@@ -67,7 +43,9 @@ namespace SupermanGTA5
             }
 
             if (!menuOpen)
+            {
                 return;
+            }
 
             if (e.KeyCode == Keys.Up)
             {
@@ -95,7 +73,7 @@ namespace SupermanGTA5
 
             if (e.KeyCode == Keys.Enter)
             {
-                ActivateMenuItem();
+                ActivateMenu();
                 return;
             }
 
@@ -104,10 +82,6 @@ namespace SupermanGTA5
                 menuOpen = false;
             }
         }
-
-        // ==========================================
-        // MAIN LOOP
-        // ==========================================
 
         private void OnTick(object sender, EventArgs e)
         {
@@ -118,34 +92,19 @@ namespace SupermanGTA5
                 return;
             }
 
-            if (godMode)
-            {
-                player.IsInvincible = true;
-            }
-
-            if (supermanEnabled)
-            {
-                UpdateSuperman(player);
-            }
-
             if (flightEnabled)
             {
                 UpdateFlight(player);
             }
 
-            if (superSpeedEnabled)
+            if (speedEnabled)
             {
-                UpdateSuperSpeed(player);
+                UpdateSpeed(player);
             }
 
-            if (heatVision)
+            if (heatVisionEnabled)
             {
                 UpdateHeatVision(player);
-            }
-
-            if (freezeBreath)
-            {
-                UpdateFreezeBreath(player);
             }
 
             if (menuOpen)
@@ -154,9 +113,35 @@ namespace SupermanGTA5
             }
         }
 
-        // ==========================================
-        // SUPERMAN
-        // ==========================================
+        private void ActivateMenu()
+        {
+            switch (menuIndex)
+            {
+                case 0:
+                    ToggleSuperman();
+                    break;
+
+                case 1:
+                    ToggleFlight();
+                    break;
+
+                case 2:
+                    ToggleSpeed();
+                    break;
+
+                case 3:
+                    ToggleHeatVision();
+                    break;
+
+                case 4:
+                    SuperPunch();
+                    break;
+
+                case 5:
+                    RestorePlayer();
+                    break;
+            }
+        }
 
         private void ToggleSuperman()
         {
@@ -165,15 +150,15 @@ namespace SupermanGTA5
             if (!supermanEnabled)
             {
                 flightEnabled = false;
-                superSpeedEnabled = false;
-                heatVision = false;
-                freezeBreath = false;
+                speedEnabled = false;
+                heatVisionEnabled = false;
 
                 Ped player = Game.Player.Character;
 
                 if (player != null && player.Exists())
                 {
                     player.CanRagdoll = true;
+                    player.IsInvincible = false;
 
                     Function.Call(
                         Hash.SET_ENTITY_HAS_GRAVITY,
@@ -188,37 +173,27 @@ namespace SupermanGTA5
                         0.0f,
                         0.0f
                     );
+
+                    Function.Call(
+                        Hash.SET_RUN_SPRINT_MULTIPLIER_FOR_PLAYER,
+                        Game.Player,
+                        1.0f
+                    );
                 }
-            }
 
-            Notification(
-                supermanEnabled
-                    ? "SUPERMAN: ON"
-                    : "SUPERMAN: OFF"
-            );
-        }
-
-        private void UpdateSuperman(Ped player)
-        {
-            if (flightEnabled)
-            {
-                player.CanRagdoll = false;
+                Notify("SUPERMAN OFF");
             }
             else
             {
-                player.CanRagdoll = true;
+                Notify("SUPERMAN ON");
             }
         }
-
-        // ==========================================
-        // FLIGHT
-        // ==========================================
 
         private void ToggleFlight()
         {
             if (!supermanEnabled)
             {
-                Notification("TURN SUPERMAN ON FIRST");
+                Notify("TURN SUPERMAN ON FIRST");
                 return;
             }
 
@@ -236,7 +211,7 @@ namespace SupermanGTA5
 
                 player.CanRagdoll = false;
 
-                Notification("FLIGHT: ON");
+                Notify("FLIGHT ON");
             }
             else
             {
@@ -256,13 +231,13 @@ namespace SupermanGTA5
 
                 player.CanRagdoll = true;
 
-                Notification("FLIGHT: OFF");
+                Notify("FLIGHT OFF");
             }
         }
 
         private void UpdateFlight(Ped player)
         {
-            if (!player.Exists())
+            if (player == null || !player.Exists())
             {
                 return;
             }
@@ -270,7 +245,7 @@ namespace SupermanGTA5
             Vector3 forward = player.ForwardVector;
             Vector3 right = player.RightVector;
 
-            float speed = flightSpeed;
+            float speed = 25.0f;
 
             bool boost =
                 Game.IsKeyPressed(Keys.LShiftKey) ||
@@ -278,7 +253,7 @@ namespace SupermanGTA5
 
             if (boost)
             {
-                speed = boostSpeed;
+                speed = 80.0f;
             }
 
             Vector3 velocity =
@@ -291,27 +266,27 @@ namespace SupermanGTA5
 
             if (Game.IsKeyPressed(Keys.S))
             {
-                velocity -= forward * speed * 0.65f;
+                velocity -= forward * speed;
             }
 
             if (Game.IsKeyPressed(Keys.A))
             {
-                velocity -= right * speed * 0.55f;
+                velocity -= right * speed;
             }
 
             if (Game.IsKeyPressed(Keys.D))
             {
-                velocity += right * speed * 0.55f;
+                velocity += right * speed;
             }
 
             if (Game.IsKeyPressed(Keys.Space))
             {
-                velocity.Z += speed * 0.75f;
+                velocity.Z += speed;
             }
 
             if (Game.IsKeyPressed(Keys.ControlKey))
             {
-                velocity.Z -= speed * 0.75f;
+                velocity.Z -= speed;
             }
 
             Function.Call(
@@ -335,32 +310,19 @@ namespace SupermanGTA5
                 31,
                 true
             );
-
-            if (boost)
-            {
-                Function.Call(
-                    Hash.SHAKE_GAMEPLAY_CAM,
-                    "SMALL_EXPLOSION_SHAKE",
-                    0.08f
-                );
-            }
         }
 
-        // ==========================================
-        // SUPER SPEED
-        // ==========================================
-
-        private void ToggleSuperSpeed()
+        private void ToggleSpeed()
         {
             if (!supermanEnabled)
             {
-                Notification("TURN SUPERMAN ON FIRST");
+                Notify("TURN SUPERMAN ON FIRST");
                 return;
             }
 
-            superSpeedEnabled = !superSpeedEnabled;
+            speedEnabled = !speedEnabled;
 
-            if (!superSpeedEnabled)
+            if (!speedEnabled)
             {
                 Function.Call(
                     Hash.SET_RUN_SPRINT_MULTIPLIER_FOR_PLAYER,
@@ -368,21 +330,15 @@ namespace SupermanGTA5
                     1.0f
                 );
 
-                Function.Call(
-                    Hash.SET_SWIM_MULTIPLIER_FOR_PLAYER,
-                    Game.Player,
-                    1.0f
-                );
+                Notify("SUPER SPEED OFF");
             }
-
-            Notification(
-                superSpeedEnabled
-                    ? "SUPER SPEED: ON"
-                    : "SUPER SPEED: OFF"
-            );
+            else
+            {
+                Notify("SUPER SPEED ON");
+            }
         }
 
-        private void UpdateSuperSpeed(Ped player)
+        private void UpdateSpeed(Ped player)
         {
             Function.Call(
                 Hash.SET_RUN_SPRINT_MULTIPLIER_FOR_PLAYER,
@@ -390,74 +346,71 @@ namespace SupermanGTA5
                 1.49f
             );
 
-            Function.Call(
-                Hash.SET_SWIM_MULTIPLIER_FOR_PLAYER,
-                Game.Player,
-                1.49f
-            );
-
-            bool sprint =
-                Game.IsKeyPressed(Keys.LShiftKey) ||
-                Game.IsKeyPressed(Keys.RShiftKey);
-
-            if (Game.IsKeyPressed(Keys.W) && sprint)
+            if (Game.IsKeyPressed(Keys.W) &&
+                Game.IsKeyPressed(Keys.LShiftKey))
             {
-                Vector3 forward =
-                    player.ForwardVector;
+                Vector3 forward = player.ForwardVector;
 
                 Function.Call(
                     Hash.SET_ENTITY_VELOCITY,
                     player.Handle,
-                    forward.X * 30.0f,
-                    forward.Y * 30.0f,
+                    forward.X * 25.0f,
+                    forward.Y * 25.0f,
                     player.Velocity.Z
                 );
             }
         }
 
-        // ==========================================
-        // HEAT VISION
-        // ==========================================
-
         private void ToggleHeatVision()
         {
             if (!supermanEnabled)
             {
-                Notification("TURN SUPERMAN ON FIRST");
+                Notify("TURN SUPERMAN ON FIRST");
                 return;
             }
 
-            heatVision = !heatVision;
+            heatVisionEnabled = !heatVisionEnabled;
 
-            if (heatVision)
+            if (heatVisionEnabled)
             {
-                freezeBreath = false;
+                Notify("HEAT VISION ON");
             }
-
-            Notification(
-                heatVision
-                    ? "HEAT VISION: ON"
-                    : "HEAT VISION: OFF"
-            );
+            else
+            {
+                Notify("HEAT VISION OFF");
+            }
         }
 
         private void UpdateHeatVision(Ped player)
         {
             Vector3 start =
                 player.Position +
-                player.ForwardVector * 0.65f +
-                new Vector3(0.0f, 0.0f, 0.55f);
+                player.ForwardVector * 0.6f;
+
+            start.Z += 0.55f;
 
             Vector3 end =
                 start +
                 player.ForwardVector * 80.0f;
 
-            DrawLaser(start, end);
+            Function.Call(
+                Hash.DRAW_LINE,
+                start.X,
+                start.Y,
+                start.Z,
+                end.X,
+                end.Y,
+                end.Z,
+                255,
+                40,
+                40,
+                255
+            );
 
             if (Game.IsKeyPressed(Keys.E))
             {
                 Entity target =
-                    GetTargetEntity(player, 80.0f);
+                    GetTarget(player, 80.0f);
 
                 if (target != null && target.Exists())
                 {
@@ -471,78 +424,27 @@ namespace SupermanGTA5
             }
         }
 
-        // ==========================================
-        // FREEZE BREATH
-        // ==========================================
-
-        private void ToggleFreezeBreath()
-        {
-            if (!supermanEnabled)
-            {
-                Notification("TURN SUPERMAN ON FIRST");
-                return;
-            }
-
-            freezeBreath = !freezeBreath;
-
-            if (freezeBreath)
-            {
-                heatVision = false;
-            }
-
-            Notification(
-                freezeBreath
-                    ? "FREEZE BREATH: ON"
-                    : "FREEZE BREATH: OFF"
-            );
-        }
-
-        private void UpdateFreezeBreath(Ped player)
-        {
-            Vector3 start =
-                player.Position +
-                player.ForwardVector * 0.7f +
-                new Vector3(0.0f, 0.0f, 0.55f);
-
-            Vector3 end =
-                start +
-                player.ForwardVector * 25.0f;
-
-            DrawBreath(start, end);
-
-            Entity target =
-                GetTargetEntity(player, 25.0f);
-
-            if (target != null && target.Exists())
-            {
-                Function.Call(
-                    Hash.FREEZE_ENTITY_POSITION,
-                    target.Handle,
-                    true
-                );
-            }
-        }
-
-        // ==========================================
-        // SUPER PUNCH
-        // ==========================================
-
         private void SuperPunch()
         {
             if (!supermanEnabled)
             {
-                Notification("TURN SUPERMAN ON FIRST");
+                Notify("TURN SUPERMAN ON FIRST");
                 return;
             }
 
             Ped player = Game.Player.Character;
 
+            if (player == null || !player.Exists())
+            {
+                return;
+            }
+
             Entity target =
-                GetTargetEntity(player, 5.0f);
+                GetTarget(player, 5.0f);
 
             if (target == null || !target.Exists())
             {
-                Notification("NO TARGET");
+                Notify("NO TARGET");
                 return;
             }
 
@@ -553,307 +455,131 @@ namespace SupermanGTA5
                 Hash.APPLY_FORCE_TO_ENTITY,
                 target.Handle,
                 1,
-                direction.X * 35.0            }
+                direction.X * 30.0f,
+                direction.Y * 30.0f,
+                5.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                0,
+                false,
+                true,
+                true,
+                false,
+                true
+            );
 
-            if (!menuOpen)
-                return;
-
-            if (e.KeyCode == Keys.Up)
-            {
-                menuIndex--;
-
-                if (menuIndex < 0)
-                    menuIndex = menuItems.Length - 1;
-
-                return;
-            }
-
-            if (e.KeyCode == Keys.Down)
-            {
-                menuIndex++;
-
-                if (menuIndex >= menuItems.Length)
-                    menuIndex = 0;
-
-                return;
-            }
-
-            if (e.KeyCode == Keys.Enter)
-            {
-                ActivateMenuItem();
-                return;
-            }
-
-            if (e.KeyCode == Keys.Back)
-            {
-                menuOpen = false;
-            }
+            Notify("SUPER PUNCH");
         }
 
-        // =========================
-        // MAIN LOOP
-        // =========================
+        private Entity GetTarget(
+            Ped player,
+            float distance)
+        {
+            Vector3 start =
+                player.Position;
 
-        private void OnTick(object sender, EventArgs e)
+            start.Z += 0.5f;
+
+            Vector3 end =
+                start +
+                player.ForwardVector * distance;
+
+            RaycastResult result =
+                World.Raycast(
+                    start,
+                    end,
+                    IntersectOptions.Everything,
+                    player
+                );
+
+            if (result.DidHit)
+            {
+                return result.HitEntity;
+            }
+
+            return null;
+        }
+
+        private void RestorePlayer()
         {
             Ped player = Game.Player.Character;
 
             if (player == null || !player.Exists())
+            {
                 return;
-
-            if (godMode)
-            {
-                player.IsInvincible = true;
             }
 
-            if (supermanEnabled)
-            {
-                UpdateSuperman(player);
-            }
+            supermanEnabled = false;
+            flightEnabled = false;
+            speedEnabled = false;
+            heatVisionEnabled = false;
 
-            if (flightEnabled)
-            {
-                UpdateFlight(player);
-            }
+            player.IsInvincible = false;
+            player.CanRagdoll = true;
 
-            if (superSpeedEnabled)
-            {
-                UpdateSuperSpeed(player);
-            }
+            player.Health = player.MaxHealth;
 
-            if (heatVision)
-            {
-                UpdateHeatVision(player);
-            }
-
-            if (freezeBreath)
-            {
-                UpdateFreezeBreath(player);
-            }
-
-            if (menuOpen)
-            {
-                DrawMenu();
-            }
-        }
-
-        // =========================
-        // SUPERMAN
-        // =========================
-
-        private void ToggleSuperman()
-        {
-            supermanEnabled = !supermanEnabled;
-
-            if (!supermanEnabled)
-            {
-                flightEnabled = false;
-                superSpeedEnabled = false;
-                heatVision = false;
-                freezeBreath = false;
-
-                Function.Call(
-                    Hash.SET_ENTITY_HAS_GRAVITY,
-                    Game.Player.Character.Handle,
-                    true
-                );
-
-                Game.Player.Character.CanRagdoll = true;
-            }
-
-            Notification(
-                supermanEnabled
-                    ? "SUPERMAN: ON"
-                    : "SUPERMAN: OFF"
+            Function.Call(
+                Hash.SET_ENTITY_HAS_GRAVITY,
+                player.Handle,
+                true
             );
-        }
-
-        private void UpdateSuperman(Ped player)
-        {
-            if (flightEnabled)
-            {
-                player.CanRagdoll = false;
-            }
-            else
-            {
-                player.CanRagdoll = true;
-            }
-        }
-
-        // =========================
-        // FLIGHT
-        // =========================
-
-        private void ToggleFlight()
-        {
-            if (!supermanEnabled)
-            {
-                Notification("TURN SUPERMAN ON FIRST");
-                return;
-            }
-
-            flightEnabled = !flightEnabled;
-
-            if (flightEnabled)
-            {
-                Function.Call(
-                    Hash.SET_ENTITY_HAS_GRAVITY,
-                    Game.Player.Character.Handle,
-                    false
-                );
-
-                Game.Player.Character.CanRagdoll = false;
-
-                Notification("FLIGHT: ON");
-            }
-            else
-            {
-                Function.Call(
-                    Hash.SET_ENTITY_HAS_GRAVITY,
-                    Game.Player.Character.Handle,
-                    true
-                );
-
-                Function.Call(
-                    Hash.SET_ENTITY_VELOCITY,
-                    Game.Player.Character.Handle,
-                    0.0f,
-                    0.0f,
-                    0.0f
-                );
-
-                Game.Player.Character.CanRagdoll = true;
-
-                Notification("FLIGHT: OFF");
-            }
-        }
-
-        private void UpdateFlight(Ped player)
-        {
-            if (!player.Exists())
-                return;
-
-            Vector3 forward = player.ForwardVector;
-            Vector3 right = player.RightVector;
-
-            float speed = flightSpeed;
-
-            bool boost =
-                Game.IsKeyPressed(Keys.LShiftKey) ||
-                Game.IsKeyPressed(Keys.RShiftKey);
-
-            if (boost)
-            {
-                speed = boostSpeed;
-            }
-
-            Vector3 velocity = Vector3.Zero;
-
-            if (Game.IsKeyPressed(Keys.W))
-            {
-                velocity += forward * speed;
-            }
-
-            if (Game.IsKeyPressed(Keys.S))
-            {
-                velocity -= forward * speed * 0.65f;
-            }
-
-            if (Game.IsKeyPressed(Keys.A))
-            {
-                velocity -= right * speed * 0.55f;
-            }
-
-            if (Game.IsKeyPressed(Keys.D))
-            {
-                velocity += right * speed * 0.55f;
-            }
-
-            if (Game.IsKeyPressed(Keys.Space))
-            {
-                velocity.Z += speed * 0.75f;
-            }
-
-            if (Game.IsKeyPressed(Keys.ControlKey))
-            {
-                velocity.Z -= speed * 0.75f;
-            }
 
             Function.Call(
                 Hash.SET_ENTITY_VELOCITY,
                 player.Handle,
-                velocity.X,
-                velocity.Y,
-                velocity.Z
+                0.0f,
+                0.0f,
+                0.0f
             );
 
-            Function.Call(
-                Hash.DISABLE_CONTROL_ACTION,
-                0,
-                30,
-                true
-            );
-
-            Function.Call(
-                Hash.DISABLE_CONTROL_ACTION,
-                0,
-                31,
-                true
-            );
-
-            if (boost)
-            {
-                Function.Call(
-                    Hash.SHAKE_GAMEPLAY_CAM,
-                    "SMALL_EXPLOSION_SHAKE",
-                    0.08f
-                );
-            }
-        }
-
-        // =========================
-        // SUPER SPEED
-        // =========================
-
-        private void ToggleSuperSpeed()
-        {
-            if (!supermanEnabled)
-            {
-                Notification("TURN SUPERMAN ON FIRST");
-                return;
-            }
-
-            superSpeedEnabled = !superSpeedEnabled;
-
-            if (!superSpeedEnabled)
-            {
-                Function.Call(
-                    Hash.SET_RUN_SPRINT_MULTIPLIER_FOR_PLAYER,
-                    Game.Player,
-                    1.0f
-                );
-
-                Function.Call(
-                    Hash.SET_SWIM_MULTIPLIER_FOR_PLAYER,
-                    Game.Player,
-                    1.0f
-                );
-            }
-
-            Notification(
-                superSpeedEnabled
-                    ? "SUPER SPEED: ON"
-                    : "SUPER SPEED: OFF"
-            );
-        }
-
-        private void UpdateSuperSpeed(Ped player)
-        {
             Function.Call(
                 Hash.SET_RUN_SPRINT_MULTIPLIER_FOR_PLAYER,
                 Game.Player,
-                1.49f
+                1.0f
             );
 
-            Function.Call(
-                Hash
+            Notify("PLAYER RESTORED");
+        }
+
+        private void DrawMenu()
+        {
+            string text =
+                "SUPERMAN TRAINER\n\n";
+
+            for (int i = 0; i < menuItems.Length; i++)
+            {
+                if (i == menuIndex)
+                {
+                    text += "> ";
+                }
+                else
+                {
+                    text += "  ";
+                }
+
+                text += menuItems[i];
+                text += "\n";
+            }
+
+            text +=
+                "\nUP/DOWN - SELECT" +
+                "\nENTER - ACTIVATE" +
+                "\nBACKSPACE - CLOSE";
+
+            Screen.ShowSubtitle(
+                text,
+                1
+            );
+        }
+
+        private void Notify(string message)
+        {
+            Screen.ShowSubtitle(
+                message,
+                1500
+            );
+        }
+    }
+}
